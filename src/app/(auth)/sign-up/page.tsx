@@ -1,4 +1,3 @@
-// src/app/(auth)/sign-up/page.tsx
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,14 +10,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import LoadingButton from "@/components/loading-button";
+
 import Link from "next/link";
+
+import { signUpSchema } from "@/lib/zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { signUpSchema } from "@/lib/zod";
-import LoadingButton from "@/components/loading-button";
 import { authClient } from "@/lib/auth-client";
 
 export default function SignUp() {
@@ -36,40 +37,33 @@ export default function SignUp() {
   });
 
   const onSubmit = async (values: z.infer<typeof signUpSchema>) => {
-    try {
-      setPending(true);
-      await authClient.signUp.email(
-        {
-          email: values.email,
-          password: values.password,
-          name: values.name,
+    await authClient.signUp.email(
+      {
+        email: values.email,
+        password: values.password,
+        name: values.name,
+      },
+      {
+        onRequest: () => {
+          setPending(true);
         },
-        {
-          onSuccess: () => {
-            toast({
-              title: "Account created",
-              description: "Check your email to verify your account.",
-            });
-          },
-          onError: (ctx) => {
-            toast({
-              title: "Sign Up Error",
-              description: ctx.error.message ?? "Something went wrong.",
-              variant: "destructive"
-            });
-          },
-        }
-      );
-    } catch (error) {
-      console.error("Unexpected error during sign up:", error);
-      toast({
-        title: "Unexpected Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setPending(false);
-    }
+        onSuccess: () => {
+          toast({
+            title: "Account created",
+            description:
+              "Your account has been created. Check your email for a verification link.",
+          });
+        },
+        onError: (ctx) => {
+          console.log("error", ctx);
+          toast({
+            title: "Something went wrong",
+            description: ctx.error.message ?? "Something went wrong.",
+          });
+        },
+      }
+    );
+    setPending(false);
   };
 
   return (
@@ -112,9 +106,7 @@ export default function SignUp() {
                   )}
                 />
               ))}
-              <LoadingButton pending={pending} type="submit">
-                Sign up
-              </LoadingButton>
+              <LoadingButton pending={pending}>Sign up</LoadingButton>
             </form>
           </Form>
           <div className="mt-4 text-center text-sm">
