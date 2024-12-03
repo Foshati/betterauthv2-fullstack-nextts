@@ -25,8 +25,7 @@ import { ErrorContext } from "@better-fetch/fetch";
 import { authClient } from "@/lib/auth-client";
 import { GitHubSignInButton } from "@/components/auth/GitHubSignInButton";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-
-
+import { FacebookSignInButton } from "@/components/auth/FacebookSignInButton";
 
 export default function SignIn() {
   const router = useRouter();
@@ -114,10 +113,11 @@ export default function SignIn() {
               </LoadingButton>
             </form>
           </Form>
-          
-          <div className="mt-4 flex space-x-4">
-            <GitHubSignInButton />
+
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <FacebookSignInButton />
             <GoogleSignInButton />
+            <GitHubSignInButton />
           </div>
 
           <div className="mt-4 text-center text-sm">
