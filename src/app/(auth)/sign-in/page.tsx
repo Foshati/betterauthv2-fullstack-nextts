@@ -22,14 +22,16 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
 import { ErrorContext } from "@better-fetch/fetch";
-import { GithubIcon } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { GitHubSignInButton } from "@/components/auth/GitHubSignInButton";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+
+
 
 export default function SignIn() {
   const router = useRouter();
   const { toast } = useToast();
   const [pendingCredentials, setPendingCredentials] = useState(false);
-  const [pendingGithub, setPendingGithub] = useState(false);
 
   const form = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
@@ -66,31 +68,6 @@ export default function SignIn() {
       }
     );
     setPendingCredentials(false);
-  };
-
-  const handleSignInWithGithub = async () => {
-    await authClient.signIn.social(
-      {
-        provider: "github",
-      },
-      {
-        onRequest: () => {
-          setPendingGithub(true);
-        },
-        onSuccess: async () => {
-          router.push("/");
-          router.refresh();
-        },
-        onError: (ctx: ErrorContext) => {
-          toast({
-            title: "Something went wrong",
-            description: ctx.error.message ?? "Something went wrong.",
-            variant: "destructive",
-          });
-        },
-      }
-    );
-    setPendingGithub(false);
   };
 
   return (
@@ -137,15 +114,12 @@ export default function SignIn() {
               </LoadingButton>
             </form>
           </Form>
-          <div className="mt-4">
-            <LoadingButton
-              pending={pendingGithub}
-              onClick={handleSignInWithGithub}
-            >
-              <GithubIcon className="w-4 h-4 mr-2" />
-              Continue with GitHub
-            </LoadingButton>
+          
+          <div className="mt-4 flex space-x-4">
+            <GitHubSignInButton />
+            <GoogleSignInButton />
           </div>
+
           <div className="mt-4 text-center text-sm">
             <Link
               href="/forgot-password"

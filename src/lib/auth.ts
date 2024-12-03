@@ -5,7 +5,6 @@ import { admin } from "better-auth/plugins";
 import prisma from "./db";
 import { sendEmail } from "@/actions/email";
 
-
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
@@ -15,8 +14,8 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // 1 day (every 1 day the session expiration is updated)
     cookieCache: {
       enabled: true,
-      maxAge: 5 * 60 // Cache duration in seconds
-    }
+      maxAge: 5 * 60, // Cache duration in seconds
+    },
   },
   user: {
     additionalFields: {
@@ -30,21 +29,28 @@ export const auth = betterAuth({
       sendChangeEmailVerification: async ({ newEmail, url }) => {
         await sendEmail({
           to: newEmail,
-          subject: 'Verify your email change',
-          text: `Click the link to verify: ${url}`
-        })
-      }
-    }
+          subject: "Verify your email change",
+          text: `Click the link to verify: ${url}`,
+        });
+      },
+    },
   },
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID as string,
       clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
     },
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
   },
-  plugins: [openAPI(), admin({
-    impersonationSessionDuration: 60 * 60 * 24 * 7, // 7 days
-  })], // api/auth/reference
+  plugins: [
+    openAPI(),
+    admin({
+      impersonationSessionDuration: 60 * 60 * 24 * 7, // 7 days
+    }),
+  ],
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
@@ -67,7 +73,7 @@ export const auth = betterAuth({
         text: `Click the link to verify your email: ${verificationUrl}`,
       });
     },
-  }
+  },
 } satisfies BetterAuthOptions);
 
 export type Session = typeof auth.$Infer.Session;
