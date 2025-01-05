@@ -7,44 +7,55 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  user
+  admin
+  moderator
+}
+
 model User {
-  id            String    @id @default(cuid())
+  id            String    @id @default(uuid())
   email         String    @unique
   name          String?
   emailVerified Boolean
   image         String?
-  premium       Boolean   @default(false)
-  role          String    @default("user")
-  banned        Boolean   @default(false)
-  banReason     String?
-  banExpires    Int? /// Unix timestamp for ban expiration
-  createdAt     DateTime
-  updatedAt     DateTime
-  Session       Session[]
-  Account       Account[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
+  sessions   Session[]
+  accounts   Account[]
+  role       UserRole  @default(user)
+  banned     Boolean?
+  banReason  String?
+  banExpires DateTime?
+  premium    Boolean?
+  username   String?
+
+  @@unique([username])
+  @@index([email])
   @@map("user")
 }
 
 model Session {
-  id String @id
+  id        String    @id @default(uuid())
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  expiresAt      DateTime
-  token          String
-  createdAt      DateTime
-  updatedAt      DateTime
-  ipAddress      String?
-  userAgent      String?
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   impersonatedBy String?
 
-  @@unique([token])
   @@map("session")
 }
 
 model Account {
-  id                    String    @id
+  id                    String    @id @default(cuid())
   accountId             String
   providerId            String
   userId                String
@@ -52,23 +63,25 @@ model Account {
   accessToken           String?
   refreshToken          String?
   idToken               String?
+  expiresAt             DateTime?
+  password              String?
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
   scope                 String?
-  password              String?
-  createdAt             DateTime
-  updatedAt             DateTime
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  deletedAt             DateTime?
 
   @@map("account")
 }
 
 model Verification {
-  id         String    @id
+  id         String   @id @default(uuid())
   identifier String
   value      String
   expiresAt  DateTime
-  createdAt  DateTime?
-  updatedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@map("verification")
 }
