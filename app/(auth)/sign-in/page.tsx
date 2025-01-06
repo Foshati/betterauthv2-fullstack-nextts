@@ -1,119 +1,148 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-
-import SocialButtons from "@/app/(auth)/_components/button/socials-buttonts";
-import SubmitButton from "@/app/(auth)/_components/button/submit-button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Form } from "@/components/ui/form";
-import { useToast } from "@/hooks/use-toast";
-import { authClient } from "@/app/(auth)/_lib/auth-client";
-
-import { ErrorContext } from "@better-fetch/fetch";
+import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-
-import { EmailInput, PasswordInput } from "./_components";
-import { signInSchema } from "@/app/(auth)/_lib/auth-schema";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { signInFormSchema } from "@/lib/auth-schema";
+import { toast } from "@/hooks/use-toast";
+import { authClient } from "@/lib/auth-client";
 
 export default function SignIn() {
-  const router = useRouter();
-  const { toast } = useToast();
-  const [pendingCredentials, setPendingCredentials] = useState(false);
-
-  const form = useForm<z.infer<typeof signInSchema>>({
-    resolver: zodResolver(signInSchema),
+  const form = useForm<z.infer<typeof signInFormSchema>>({
+    resolver: zodResolver(signInFormSchema),
     defaultValues: {
       email: "",
       password: "",
     },
-    mode: "onChange", // Validate on every change
   });
 
-  const handleCredentialsSignIn = async (
-    values: z.infer<typeof signInSchema>
-  ) => {
-    await authClient.signIn.email(
-      {
-        email: values.email,
-        password: values.password,
-      },
-      {
-        onRequest: () => {
-          setPendingCredentials(true);
-        },
-        onSuccess: async () => {
-          router.push("/");
-          router.refresh();
-        },
-        onError: (ctx: ErrorContext) => {
-          console.log(ctx);
+  async function onSubmit(values: z.infer<typeof signInFormSchema>) {
+    const { email, password } = values;
+
+    try {
+      const { data, error } = await authClient.signIn.email({
+        email,
+        password,
+        callbackURL: "/dashboard",
+      });
+
+      if (error) {
+        // Handle specific error cases
+        if (error.message === "Credential account not found") {
           toast({
-            title: "Something went wrong",
-            description: ctx.error.message ?? "Something went wrong.",
+            title: "Sign-in Failed",
+            description: "Account not found. Please sign up first.",
             variant: "destructive",
           });
-        },
+        } else {
+          toast({
+            title: "Sign-in Failed",
+            description: error.message || "Invalid email or password. Please try again.",
+            variant: "destructive",
+          });
+        }
+        return;
       }
-    );
-    setPendingCredentials(false);
-  };
 
-  const isFormFilled =
-    form.watch("email").trim() !== "" && form.watch("password").trim() !== "";
+      // Success case
+      form.reset();
+      toast({
+        title: "Sign-in Successful",
+        description: "You have been signed in successfully.",
+      });
+
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      toast({
+        title: "Sign-in Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }
 
   return (
-    <>
-      <Card className="w-full max-w-xs sm:max-w-sm lg:max-w-lg mx-auto my-28">
-        <CardHeader>
-          <CardTitle className="font-bold text-3xl">Sign in</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(handleCredentialsSignIn)}
-              className="space-y-6"
-            >
-              <EmailInput control={form.control} />
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Sign In</CardTitle>
+        <CardDescription>
+          Welcome back! Please sign in to continue.
+        </CardDescription>
+      </CardHeader>
 
-              <PasswordInput control={form.control} />
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="email@example.com" 
+                      type="email"
+                      autoComplete="email"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder="Enter your password"
+                      autoComplete="current-password"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button className="w-full" type="submit">
+              Sign In
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
 
-              <SubmitButton
-                className="w-full"
-                pending={pendingCredentials}
-                disabled={!isFormFilled}
-              >
-                Sign in
-              </SubmitButton>
-            </form>
-          </Form>
-
-          <div className="flex items-center justify-center my-6">
-            <hr className="border-t-2 border-gray-300 flex-1" />
-            <span className="mx-4 text-gray-600 text-[10px]">or</span>
-            <hr className="border-t-2 border-gray-300 flex-1" />
-          </div>
-
-          <SocialButtons />
-        </CardContent>
-        <CardFooter>
-          <p className="text-xs font-medium text-slate-700">
-            Don&apos;t have an account yet?
-          </p>
-          <Link className="text-sm font-bold  ml-2" href="sign-up">
+      <CardFooter className="flex justify-center">
+        <p className="text-sm text-muted-foreground">
+          Don&apos;t have an account yet?{" "}
+          <Link href="/sign-up" className="text-primary hover:underline">
             Sign up
           </Link>
-        </CardFooter>
-      </Card>
-    </>
+        </p>
+      </CardFooter>
+    </Card>
   );
 }
